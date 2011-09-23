@@ -7,10 +7,10 @@ mc = memcache.Client(["127.0.0.1:11211"])
 
 @transaction(mc)　　←デコレータにクライアントのインスタンス
 def result(setter, getter):　←関数宣言のように見えるけれどこの場で実行される
-		a = getter('a')　　←setterとgetterを好きに使ってトランザクションができる
-		b = getter('b')
-		if a <= b:
-			 setter('a', a+1)
-		else:
-			 setter('b', b+1)
-print 'a:',result['a'], ' b ',result['b']  ←トランザクション中で読み書きしたデータはキャッシュしておくので読める
+  a = getter('a')　　←setterとgetterを好きに使ってトランザクションができる
+  b = getter('b')
+  if a <= b:
+    setter('a', a+1)
+  else:
+    setter('b', b+1)
+  print 'a:',result['a'], ' b ',result['b']  ←トランザクション中で読み書きしたデータはキャッシュしておくので読める
