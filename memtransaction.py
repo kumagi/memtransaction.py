@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import time
 import memcache
-import traceback,sys
+# import thrift_client
+# import traceback,sys
 
 from time import sleep
 from random import randint
@@ -9,15 +10,15 @@ from random import randint
 class AbortException(Exception):
     pass
 
-def read_commited(old, new, status):
-    if status == 'commited':
+def read_committed(old, new, status):
+    if status == 'committed':
         return new, old
     elif status == 'abort' or status == 'active':
         return old, new
     else:
         raise Exception('invalid status' + status)
 def read_repeatable(old, new, status):
-    if status == 'commited':
+    if status == 'committed':
         return new,old
     elif status == 'abort':
         return old,new
@@ -54,7 +55,7 @@ class MemTr(object):
     def commit(self):
         status = self.mc.gets(self.transaction_status)
         if status != 'active': raise AbortException
-        return self.mc.cas(self.transaction_status, 'commited')
+        return self.mc.cas(self.transaction_status, 'committed')
     class resolver(object):
         def __init__(self, mc):
             self.count = 10
@@ -107,7 +108,7 @@ class MemTr(object):
                         self.mc.delete(to_delete)
                     #print "setting cache:",self.cache
                     break
-    def get_commited(self, key):
+    def get_committed(self, key):
         while 1:
             old = new = status_name = None
             try:
@@ -115,17 +116,17 @@ class MemTr(object):
                 old, new, status_name = self.mc.gets(key)
             except TypeError:
                 #print "typeerror"
-                return None  # read commited!!
+                return None  # read committed!!
 
             if status_name == self.transaction_status:
                 return self.cache[key]
                 #return self.mc.get(new)
             else:
                 state = self.mc.get(status_name)
-                commited_value, to_delete = read_commited(old,new,state)
+                committed_value, to_delete = read_committed(old,new,state)
                 if state != 'active':
                     self.mc.delete(to_delete)
-                result = self.mc.get(commited_value)
+                result = self.mc.get(committed_value)
                 self.cache[key] = result
                 return result
 
@@ -138,22 +139,26 @@ class MemTr(object):
                 old, new, status_name = self.mc.gets(key)
             except TypeError:
                 #print "typeerror"
-                return None  # read commited!!
+                return None  # read committed!!
             if status_name == self.transaction_status:
                 #print 'cache hit'
                 return self.cache[key]
                 #return self.mc.get(new)
             else:
                 state = self.mc.get(status_name)
-                commited_value, to_delete = read_repeatable(old,new,state)
-                if self.mc.cas(key, [commited_value,
-                                     commited_value,
+                try:
+                    committed_value, to_delete = read_repeatable(old,new,state)
+                except Typeerror:
+                    resolver(status_name)
+                    continue
+                if self.mc.cas(key, [committed_value,
+                                     committed_value,
                                      self.transaction_status]):
                     if state != 'active' and new != old:
                         self.mc.delete(to_delete)
                 else:
                     continue
-                result = self.mc.get(commited_value)
+                result = self.mc.get(committed_value)
                 self.cache[key] = result
                 return result
 
@@ -172,11 +177,12 @@ def rr_transaction(kvs, target_transaction):
 def rc_transaction(kvs, target_transaction):
     transaction = MemTr(kvs)
     setter = lambda k,v : transaction.set(k,v)
-    getter = lambda k :   transaction.get_commited(k)
+    getter = lambda k :   transaction.get_committed(k)
+    repeatable_getter = lambda k : transaction.get_repeatable(k)
     while(1):
         transaction.begin()
         try:
-            target_transaction(setter, getter)
+            target_transaction(setter, getter, repeatable_getter)
             if transaction.commit() == True:
                 return transaction.cache
         except AbortException:
@@ -188,13 +194,10 @@ if __name__ == '__main__':
         s('counter',0)
     def incr(setter, getter):
         d = getter('counter')
+        print "counter:",d
         setter('counter', d+1)
     result = rr_transaction(mc, init)
     print result['counter']
     for i in range(10000):
         result = rr_transaction(mc, incr)
     print result['counter']
-
-
-
-
