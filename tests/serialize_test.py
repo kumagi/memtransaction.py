@@ -3,6 +3,7 @@ from os.path import dirname
 path.append(dirname(__file__) + '/..')
 from client import serializer
 from hibari_transaction import *
+import sys
 
 def serialize_test():
   table_key = serializer.serialize(('aa', 'fuga'))
@@ -13,6 +14,7 @@ def add_random_test():
   mt = MemTr(client.HibariClient('localhost', 7580))
   result = mt.add_random('hoge')
   assert result != ''
+  print sys.version
 
 def init(s, g):
   s('counter',0)
@@ -68,8 +70,9 @@ def use_many_client_test():
     cl = client.HibariClient('localhost', 7580)
     result = rr_transaction(cl, incr)
     assert result['counter'] == i + 1
-  result = rr_transaction(mc1, incr)
-  assert result['counter'] == 101
+  #result = rr_transaction(mc1, incr)
+  mc1.set('tmp','k','hoge')
+  #assert result['counter'] == 101
 
 from threading import Thread
 def incr_worker(target_host, target_port, num):
@@ -88,5 +91,6 @@ def est_concurrent():
     workers.append(worker)
   for i in range(len(workers)):
     workers[i].join()
-  result = rr_transaction(cl, incr)
+  #result = rr_transaction(cl, incr)
+  cl.set('tmp','k','hoge')
   assert result['counter'] == 101
