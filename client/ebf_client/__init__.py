@@ -38,7 +38,7 @@ class HibariClient(object):
     if result[0][0] == 'ok':
       return serializer.deserialize(result[0][2])
     else:
-      return None
+      return Nonez
   def gets(self, table, key):
     req = (Atom('do'), Atom(table), [(Atom('get'), key, [Atom('get_attribs')])], [], 1000)
     result = latency.accum(lambda:self.ebf.rpc('gdss',req))

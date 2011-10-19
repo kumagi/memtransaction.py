@@ -177,12 +177,10 @@ class MemTr(object):
           if state != 'active' and new != old:
             delete_table, delete_key = serializer.deserialize(to_delete)
             self.mc.delete(delete_table, delete_key)
-        else:
-          continue
-        target_table, target_key = serializer.deserialize(committed_value)
-        result = self.mc.gets(target_table, target_key)
-        self.cache[key] = result
-        return result
+          target_table, target_key = serializer.deserialize(committed_value)
+          result = self.mc.gets(target_table, target_key)
+          self.cache[key] = result
+          return result
 
 def rr_transaction(kvs, target_transaction):
   transaction = MemTr(kvs)
