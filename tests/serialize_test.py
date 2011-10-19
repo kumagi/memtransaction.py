@@ -69,6 +69,7 @@ def use_many_client_test():
   for i in range(100):
     cl = client.HibariClient('localhost', 7580)
     result = rr_transaction(cl, incr)
+    mc1.set('tmp','k','hoge')
     assert result['counter'] == i + 1
   #result = rr_transaction(mc1, incr)
   mc1.set('tmp','k','hoge')
