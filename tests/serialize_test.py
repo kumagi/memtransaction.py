@@ -63,6 +63,7 @@ def test_count():
   print mc.latency()
 
 def use_many_client_test():
+  client.HibariClient.init_log()
   mc1 = client.HibariClient('localhost', 7580)
   result = rr_transaction(mc1, init)
   assert result['counter'] == 0
@@ -95,3 +96,8 @@ def est_concurrent():
   #result = rr_transaction(cl, incr)
   cl.set('tmp','k','hoge')
   assert result['counter'] == 101
+
+
+
+
+
