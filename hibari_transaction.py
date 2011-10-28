@@ -48,7 +48,7 @@ class MemTr(object):
     while True:
       key = MemTr.random_string(length)
       result = self.mc.add(self.indirect_table, key, value)
-      print result
+      #print result
       if result == True:
         return serializer.serialize((self.indirect_table, key))
       length += 1
@@ -88,7 +88,7 @@ class MemTr(object):
       old = new = status_name = None
       try:
         old, new, status_name = self.mc.gets(self.main_table, key)
-        print "set: old=", get_by_table_and_key(self.mc,old), " new=", get_by_table_and_key(self.mc, new), " status_name=", get_by_table_and_key(self.mc, status_name)
+        #print "set: old=", get_by_table_and_key(self.mc,old), " new=", get_by_table_and_key(self.mc, new), " status_name=", get_by_table_and_key(self.mc, status_name)
       except TypeError:
         new_key = self.add_random(value)
         if self.mc.add(self.main_table, key, [None, new_key, self.transaction_status]):
@@ -156,12 +156,12 @@ class MemTr(object):
       old = new = status_name = None
       try:
         old, new, status_name = self.mc.gets(self.main_table, key)
-        print "get: old=", get_by_table_and_key(self.mc,old), " new=", get_by_table_and_key(self.mc, new), " status_name=", get_by_table_and_key(self.mc, status_name)
+        #print "get: old=", get_by_table_and_key(self.mc,old), " new=", get_by_table_and_key(self.mc, new), " status_name=", get_by_table_and_key(self.mc, status_name)
       except TypeError:
-        print "typeerror"
+        #print "typeerror"
         return None  # read committed!!
       if status_name == self.transaction_status: # I already got
-        print 'cache hit'
+        #print 'cache hit'
         return self.cache[key]
       else:
         status_table, status_key = serializer.deserialize(status_name)
@@ -214,14 +214,13 @@ if __name__ == '__main__':
     s('counter',0)
   def incr(setter, getter):
     d = getter('counter')
-    print "counter:",d
+    #print "counter:",d
     setter('counter', d+1)
   result = rr_transaction(mc, init)
   print 'set counter ok'
-
-  print result
+  from time import time
+  begin = time()
   for i in range(10000):
     result = rr_transaction(mc, incr)
   print result['counter']
-
-
+  print str(10000 / (time() - begin)) + " qps"

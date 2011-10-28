@@ -29,60 +29,58 @@ class HibariClient(object):
     latency = LatencyAccum()
   def add(self, table, key, value):
     value = serializer.serialize(value)
-    req = (Atom('do'), Atom(table), [(Atom('add'), key, 0, value, 0, [])], [], 1000)
+    req = (Atom('add'), Atom(table), key, value, 0, [], 1000)
     result = latency.accum(lambda:self.ebf.rpc('gdss', req))
-    return result[0][0] == 'ok'
+    return result[0] == 'ok'
   def get(self, table, key):
-    req = (Atom('do'), Atom(table), [(Atom('get'), key, [])], [], 1000)
+    req = (Atom('get'), Atom(table), key, [], 1000)
     result = latency.accum(lambda:self.ebf.rpc('gdss',req))
-    if result[0][0] == 'ok':
-      return serializer.deserialize(result[0][2])
+    if result[0] == 'ok':
+      return serializer.deserialize(result[2])
     else:
       return Nonez
   def gets(self, table, key):
-    req = (Atom('do'), Atom(table), [(Atom('get'), key, [Atom('get_attribs')])], [], 1000)
+    req = (Atom('get'), Atom(table), key, [Atom('get_attribs')], 1000)
     result = latency.accum(lambda:self.ebf.rpc('gdss',req))
-    self.timestamp_cache[(table,key)] = result[0][1]
+    self.timestamp_cache[(table,key)] = result[1]
     #print "cached:",self.timestamp_cache[(table,key)]
-    if result[0][0] == 'ok':
-      return serializer.deserialize(result[0][2])
+    if result[0] == 'ok':
+      return serializer.deserialize(result[2])
     else:
       return None
   def _dump(self, table, key):
-    req = (Atom('do'), Atom(table), [(Atom('get'), key, [Atom('get_attribs')])], [], 100,0)
+    req = (Atom('get'), Atom(table), key, [Atom('get_attribs')], 100,0)
     result = latency.accum(lambda:self.ebf.rpc('gdss',req))
     print table,":",key,":",result
   def set(self, table, key, value):
     value = serializer.serialize(value)
-    req = (Atom('set'), table, key, value)
-    req = (Atom('do'), Atom(table), [(Atom('set'), key, 0, value, 0, [])], [], 1000)
-    #req = (Atom('do'), Atom(table), [(Atom('set'), key, 0, value, 0, [])], [], 1000)
+    req = (Atom('set'), Atom(table), key, value, 0, [], 1000)
     result = latency.accum(lambda:self.ebf.rpc('gdss',req))
-    return result[0][0] == 'ok'
+    return result[0] == 'ok'
   def cas(self, table, key, value):
     value = serializer.serialize(value)
     if (table,key) not in self.timestamp_cache:
       raise Exception("you must 'gets' key before cas")
-    req = (Atom('do'), Atom(table), [(Atom('set'), key, 0, value, 0,
-                                      [(Atom('testset'), self.timestamp_cache[(table,key)])])], [], 1000)
-    #req = (Atom('do'), Atom(table), [(Atom('set'), key, 0, value, 0, [])], [], 1000)
+    req = (Atom('replace'), Atom(table), key, value, 0,
+           [(Atom('testset'), self.timestamp_cache[(table,key)])], 1000)
     result = latency.accum(lambda:self.ebf.rpc('gdss',req))
-    return result[0][0] == 'ok'
+    return result[0] == 'ok'
   def replace(self, table, key, value):
     value = serializer.serialize(value)
-    req = (Atom('do'), Atom(table), [(Atom('replace'), key, 0, value, 0, [])], [], 1000)
+    req = (Atom('replace'), Atom(table), key, value, 0, [], 1000)
     result = latency.accum(lambda:self.ebf.rpc('gdss',req))
-    return result[0][0] == 'ok'
+    return result[0] == 'ok'
+
   def delete(self, table, key):
-    req = (Atom('do'), Atom(table), [(Atom('delete'), key, [])], [], 1000)
+    req = (Atom('delete'), Atom(table), key, [], 1000)
     result = latency.accum(lambda:self.ebf.rpc('gdss',req))
-    if result[0] == 'ok':
+    if result == 'ok':
       return True
     else:
       return False
   def get_many(self, table, key, num):
     req = (Atom('get'), table, key, [], 1000)
-    #req = (Atom('do'), Atom(table), [(Atom('get_many'), key, num, [])], [], 1000)
+    req = (Atom('get_many'), Atom(table), key, num, [], 1000)
     result = latency.accum(lambda:self.ebf.rpc('gdss',req))
     print result
   @classmethod

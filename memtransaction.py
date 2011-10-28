@@ -53,7 +53,7 @@ class AsyncDeletingMemcacheClient(memcache.Client):
       self.del_thread.setDaemon(True)
       self.del_thread.start()
   def add_del_que(self,target):
-    print "appending ",target, " to", len(self.del_que)
+    #print "appending ",target, " to", len(self.del_que)
     self.del_que.append(target)
 
 class MemTr(object):
@@ -89,7 +89,7 @@ class MemTr(object):
       self.count = 10
       self.mc = mc
     def __call__(self, other_status):
-      sleep(0.001 * randint(0, 1 << self.count))
+      time.sleep(0.001 * randint(0, 1 << self.count))
       if self.count <= 10:
         self.count += 1
       else:
@@ -227,6 +227,9 @@ if __name__ == '__main__':
     #print "counter:",d
     setter('counter', d+1)
   result = rr_transaction(mc, init)
+  from time import time
+  begin = time()
   for i in range(10000):
     result = rr_transaction(mc, incr)
   print result['counter']
+  print str(10000 / (time() - begin)) + " qps"

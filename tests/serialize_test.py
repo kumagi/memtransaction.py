@@ -23,7 +23,6 @@ def incr(s, g):
   d = g('counter')
   print "counter:",d
   s('counter', d+1)
-  print "incr done\n"
 
 def init_test():
   client.HibariClient.init_latency()
@@ -63,7 +62,6 @@ def test_count():
   print mc.latency()
 
 def use_many_client_test():
-  client.HibariClient.init_log()
   mc1 = client.HibariClient('localhost', 7580)
   result = rr_transaction(mc1, init)
   assert result['counter'] == 0
@@ -83,7 +81,7 @@ def incr_worker(target_host, target_port, num):
     rr_transaction(mc, incr)
     #print "*"*i+"-"*(num-i)
 
-def est_concurrent():
+def test_concurrent():
   cl = client.HibariClient('localhost', 7580)
   rr_transaction(cl, init)
   workers = []
@@ -93,11 +91,19 @@ def est_concurrent():
     workers.append(worker)
   for i in range(len(workers)):
     workers[i].join()
-  #result = rr_transaction(cl, incr)
-  cl.set('tmp','k','hoge')
+  result = rr_transaction(cl, incr)
   assert result['counter'] == 101
 
-
-
-
+def test_highly_concurrent():
+  cl = client.HibariClient('localhost', 7580)
+  rr_transaction(cl, init)
+  workers = []
+  for i in range(100):
+    worker = Thread(target = lambda: incr_worker('localhost', 7580, 10))
+    worker.start()
+    workers.append(worker)
+  for i in range(len(workers)):
+    workers[i].join()
+  result = rr_transaction(cl, incr)
+  assert result['counter'] == 1001
 
